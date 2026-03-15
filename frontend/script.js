@@ -23,6 +23,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Event Listeners
 function setupEventListeners() {
+    // New chat
+    document.getElementById('newChatBtn').addEventListener('click', createNewSession);
+
     // Chat functionality
     sendButton.addEventListener('click', sendMessage);
     chatInput.addEventListener('keypress', (e) => {
