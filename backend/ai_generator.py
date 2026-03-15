@@ -16,6 +16,7 @@ Search Tool Usage:
 Response Protocol:
 - **General knowledge questions**: Answer using existing knowledge without searching
 - **Course-specific questions**: Search first, then answer
+- **Course outline/structure questions**: Use the `get_course_outline` tool when the user asks about a course's structure, outline, or lesson list. Return the course title, course link, and the numbered list of lessons exactly as provided.
 - **No meta-commentary**:
  - Provide direct answers only — no reasoning process, search explanations, or question-type analysis
  - Do not mention "based on the search results"
