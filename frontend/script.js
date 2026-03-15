@@ -122,10 +122,20 @@ function addMessage(content, type, sources = null, isWelcome = false) {
     let html = `<div class="message-content">${displayContent}</div>`;
     
     if (sources && sources.length > 0) {
+        const sourcesHtml = sources.map(s => {
+            const parts = s.split('||');
+            const label = parts[0];
+            const url = parts[1];
+            const lessonMatch = label.match(/Lesson\s+(\d+)/i);
+            const shortLabel = lessonMatch ? 'Lesson ' + lessonMatch[1] : label;
+            return url
+                ? '<a class="source-tag" href="' + url + '" target="_blank" rel="noopener noreferrer">' + shortLabel + '</a>'
+                : '<span class="source-tag">' + shortLabel + '</span>';
+        }).join('');
         html += `
             <details class="sources-collapsible">
                 <summary class="sources-header">Sources</summary>
-                <div class="sources-content">${sources.join(', ')}</div>
+                <div class="sources-content">${sourcesHtml}</div>
             </details>
         `;
     }
