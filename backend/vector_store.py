@@ -90,11 +90,10 @@ class VectorStore:
         search_limit = limit if limit is not None else self.max_results
         
         try:
-            results = self.course_content.query(
-                query_texts=[query],
-                n_results=search_limit,
-                where=filter_dict
-            )
+            query_kwargs = {"query_texts": [query], "n_results": search_limit}
+            if filter_dict is not None:
+                query_kwargs["where"] = filter_dict
+            results = self.course_content.query(**query_kwargs)
             return SearchResults.from_chroma(results)
         except Exception as e:
             return SearchResults.empty(f"Search error: {str(e)}")
