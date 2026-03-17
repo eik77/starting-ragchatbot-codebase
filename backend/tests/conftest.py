@@ -54,3 +54,77 @@ def empty_search_results():
 @pytest.fixture
 def error_search_results():
     return SearchResults.empty("Search error: ChromaDB connection failed")
+
+
+# ---------------------------------------------------------------------------
+# API test fixtures
+# ---------------------------------------------------------------------------
+
+@pytest.fixture
+def mock_rag_system():
+    """RAGSystem mock with sensible defaults for API tests."""
+    system = MagicMock()
+    system.query.return_value = ("Python is a programming language.", ["Python Basics - Lesson 1||http://example.com/lesson1"])
+    system.get_course_analytics.return_value = {
+        "total_courses": 2,
+        "course_titles": ["Python Basics", "Advanced Python"],
+    }
+    system.session_manager.create_session.return_value = "test-session-id"
+    return system
+
+
+@pytest.fixture
+def test_app(mock_rag_system):
+    """
+    Minimal FastAPI app that mirrors the real app's API routes but avoids
+    mounting the frontend static files (which don't exist in the test env).
+    """
+    from fastapi import FastAPI, HTTPException
+    from fastapi.middleware.cors import CORSMiddleware
+    from pydantic import BaseModel
+    from typing import List, Optional
+
+    app = FastAPI()
+    app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+
+    class QueryRequest(BaseModel):
+        query: str
+        session_id: Optional[str] = None
+
+    class QueryResponse(BaseModel):
+        answer: str
+        sources: List[str]
+        session_id: str
+
+    class CourseStats(BaseModel):
+        total_courses: int
+        course_titles: List[str]
+
+    @app.post("/api/query", response_model=QueryResponse)
+    async def query_documents(request: QueryRequest):
+        try:
+            session_id = request.session_id or mock_rag_system.session_manager.create_session()
+            answer, sources = mock_rag_system.query(request.query, session_id)
+            return QueryResponse(answer=answer, sources=sources, session_id=session_id)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/courses", response_model=CourseStats)
+    async def get_course_stats():
+        try:
+            analytics = mock_rag_system.get_course_analytics()
+            return CourseStats(
+                total_courses=analytics["total_courses"],
+                course_titles=analytics["course_titles"],
+            )
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    return app
+
+
+@pytest.fixture
+def api_client(test_app):
+    """Synchronous TestClient wrapping the test app."""
+    from fastapi.testclient import TestClient
+    return TestClient(test_app)
